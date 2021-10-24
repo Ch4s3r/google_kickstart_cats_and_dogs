@@ -94,7 +94,8 @@ fn eval(
             })
             .filter(|result| {
                 match result {
-                    Err(Box(animal, ..)) =>,
+                    // todo check how to return true only if the animal is a Dog inside the Box in the Error
+                    // Err(Box(animal, ..)) =>,
                     _ => { false }
                 }
             }).count();
