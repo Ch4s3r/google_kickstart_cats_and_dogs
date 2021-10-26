@@ -1,12 +1,10 @@
-#[macro_use]
-extern crate indoc;
+// #[macro_use]
+// extern crate indoc;
 
 use std::error::Error;
 use std::fmt::Debug;
 use std::io;
-use std::io::{stdin, stdout, BufRead, Read, Write};
-
-use indoc::indoc;
+use std::io::{BufRead, Read, stdin, stdout, Write};
 
 fn main() {
     eval(&mut stdin().lock(), &mut stdout().lock())
@@ -18,10 +16,11 @@ fn get_input(input: &mut (impl Read + BufRead)) -> String {
     buffer.trim().to_string()
 }
 
+#[derive(Debug)]
 struct Food {
-    dog_portions_left: i32,
-    cat_portions_left: i32,
-    cat_food_increment: i32,
+    dog_portions_left: u64,
+    cat_portions_left: u64,
+    cat_food_increment: u64,
 }
 
 trait Animal: Debug {
@@ -36,10 +35,8 @@ impl Animal for Cat {
     fn eat(&self, food: &mut Food) -> Result<(), Box<dyn Error>> {
         if food.cat_portions_left > 0 {
             food.cat_portions_left -= 1;
-            dbg!("Cat is eating");
             Ok(())
         } else {
-            dbg!("Cat is starving");
             Err("No cat food left.".into())
         }
     }
@@ -57,10 +54,8 @@ impl Animal for Dog {
         if food.dog_portions_left > 0 {
             food.dog_portions_left -= 1;
             food.cat_portions_left += food.cat_food_increment;
-            dbg!("Dog is eating");
             Ok(())
         } else {
-            dbg!("Dog is starving");
             Err("No dog food left.".into())
         }
     }
@@ -71,12 +66,11 @@ impl Animal for Dog {
 }
 
 fn eval(input: &mut (impl Read + BufRead), output: &mut impl Write) {
-    let number_of_tests = get_input(input).parse::<i32>().unwrap();
+    let number_of_tests = get_input(input).parse::<u64>().unwrap();
     for i in 1..number_of_tests + 1 {
-        dbg!("Testcase", i);
         let numbers = get_input(input)
             .split(" ")
-            .map(|x| x.parse::<i32>().unwrap())
+            .map(|x| x.parse::<u64>().unwrap())
             .collect::<Vec<_>>();
         let total_animals = numbers[0];
         let mut food = Food {
@@ -85,7 +79,7 @@ fn eval(input: &mut (impl Read + BufRead), output: &mut impl Write) {
             cat_food_increment: numbers[3],
         };
         let food_chain = get_input(input);
-        let dogs_not_fed = food_chain
+        let mut animals = food_chain
             .chars()
             .map(|animal_char| -> Box<dyn Animal> {
                 if animal_char == 'D' {
@@ -93,19 +87,22 @@ fn eval(input: &mut (impl Read + BufRead), output: &mut impl Write) {
                 } else {
                     Box::new(Cat)
                 }
-            })
-            .map(|animal| animal.eat(&mut food).map_err(|error| animal))
-            .filter(|result| match result {
-                Err(animal) => animal.starving_causes_loss(),
-                _ => false,
-            })
-            .count();
-        // .collect::<Vec<_>>();
+            }).collect::<Vec<_>>();
 
-        let mut result = if dogs_not_fed > 0 {
-            "NO".to_string()
-        } else {
-            "YES".to_string()
+        let mut result = "YES".to_string();
+        while let Some(animal) = animals.iter().peekable().peek() {
+            if let Err(_) = animal.eat(&mut food) {
+                break;
+            }
+            animals.pop();
+        }
+
+        dbg!(&animals);
+        for animal in animals {
+            if animal.starving_causes_loss() {
+                result = "NO".to_string();
+                break;
+            }
         };
         output.write(format!("Case #{}: {}\n", i, result).as_bytes());
     }
@@ -114,6 +111,8 @@ fn eval(input: &mut (impl Read + BufRead), output: &mut impl Write) {
 #[cfg(test)]
 mod tests {
     use std::str::from_utf8;
+
+    use indoc::indoc;
 
     use super::*;
 
@@ -127,13 +126,32 @@ mod tests {
             4 2 1 0
             DCCD
         "
-        .as_bytes();
+            .as_bytes();
         let mut output: Vec<u8> = Vec::new();
         eval(&mut input, &mut output);
         assert_eq!(
             r"Case #1: YES
 Case #2: YES
 Case #3: NO
+",
+            from_utf8(output.as_slice()).unwrap()
+        )
+    }
+
+    #[test]
+    fn it_works2() {
+        let mut input = "2
+12 4 2 2
+CDCCCDCCDCDC
+8 2 1 3
+DCCCCCDC
+        "
+            .as_bytes();
+        let mut output: Vec<u8> = Vec::new();
+        eval(&mut input, &mut output);
+        assert_eq!(
+            r"Case #1: YES
+Case #2: NO
 ",
             from_utf8(output.as_slice()).unwrap()
         )
