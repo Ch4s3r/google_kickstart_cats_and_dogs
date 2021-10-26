@@ -1,9 +1,5 @@
-// #[macro_use]
-// extern crate indoc;
-
 use std::error::Error;
 use std::fmt::Debug;
-use std::io;
 use std::io::{BufRead, Read, stdin, stdout, Write};
 
 fn main() {
@@ -35,6 +31,7 @@ impl Animal for Cat {
     fn eat(&self, food: &mut Food) -> Result<(), Box<dyn Error>> {
         if food.cat_portions_left > 0 {
             food.cat_portions_left -= 1;
+            dbg!(&food);
             Ok(())
         } else {
             Err("No cat food left.".into())
@@ -54,6 +51,7 @@ impl Animal for Dog {
         if food.dog_portions_left > 0 {
             food.dog_portions_left -= 1;
             food.cat_portions_left += food.cat_food_increment;
+            dbg!(&food);
             Ok(())
         } else {
             Err("No dog food left.".into())
@@ -72,14 +70,15 @@ fn eval(input: &mut (impl Read + BufRead), output: &mut impl Write) {
             .split(" ")
             .map(|x| x.parse::<u64>().unwrap())
             .collect::<Vec<_>>();
-        let total_animals = numbers[0];
+        let _total_animals = numbers[0];
         let mut food = Food {
             dog_portions_left: numbers[1],
             cat_portions_left: numbers[2],
             cat_food_increment: numbers[3],
         };
         let food_chain = get_input(input);
-        let mut animals = food_chain
+        dbg!(&food_chain);
+        let animals = food_chain
             .chars()
             .map(|animal_char| -> Box<dyn Animal> {
                 if animal_char == 'D' {
@@ -89,30 +88,30 @@ fn eval(input: &mut (impl Read + BufRead), output: &mut impl Write) {
                 }
             }).collect::<Vec<_>>();
 
-        let mut result = "YES".to_string();
-        while let Some(animal) = animals.iter().peekable().peek() {
+        let mut first_starving_animal = animals.len();
+        for (index, animal) in animals.iter().enumerate() {
+            dbg!(&animal);
             if let Err(_) = animal.eat(&mut food) {
+                first_starving_animal = index;
                 break;
             }
-            animals.pop();
         }
 
-        dbg!(&animals);
-        for animal in animals {
+        let mut result = "YES".to_string();
+        for animal in &animals[first_starving_animal..] {
             if animal.starving_causes_loss() {
                 result = "NO".to_string();
                 break;
             }
-        };
-        output.write(format!("Case #{}: {}\n", i, result).as_bytes());
+        }
+
+        output.write(format!("Case #{}: {}\n", i, result).as_bytes()).unwrap();
     }
 }
 
 #[cfg(test)]
 mod tests {
     use std::str::from_utf8;
-
-    use indoc::indoc;
 
     use super::*;
 
