@@ -31,7 +31,7 @@ impl Animal for Cat {
     fn eat(&self, food: &mut Food) -> Result<(), Box<dyn Error>> {
         if food.cat_portions_left > 0 {
             food.cat_portions_left -= 1;
-            dbg!(&food);
+            // dbg!(&food);
             Ok(())
         } else {
             Err("No cat food left.".into())
@@ -51,7 +51,7 @@ impl Animal for Dog {
         if food.dog_portions_left > 0 {
             food.dog_portions_left -= 1;
             food.cat_portions_left += food.cat_food_increment;
-            dbg!(&food);
+            // dbg!(&food);
             Ok(())
         } else {
             Err("No dog food left.".into())
@@ -77,7 +77,7 @@ fn eval(input: &mut (impl Read + BufRead), output: &mut impl Write) {
             cat_food_increment: numbers[3],
         };
         let food_chain = get_input(input);
-        dbg!(&food_chain);
+        // dbg!(&food_chain);
         let animals = food_chain
             .chars()
             .map(|animal_char| -> Box<dyn Animal> {
@@ -90,7 +90,7 @@ fn eval(input: &mut (impl Read + BufRead), output: &mut impl Write) {
 
         let mut first_starving_animal = animals.len();
         for (index, animal) in animals.iter().enumerate() {
-            dbg!(&animal);
+            // dbg!(&animal);
             if let Err(_) = animal.eat(&mut food) {
                 first_starving_animal = index;
                 break;
